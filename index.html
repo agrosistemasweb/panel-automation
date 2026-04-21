@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Automatizaciones - Modulo Contable</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242736;
+            --border: #2e3244;
+            --text: #e4e6ef;
+            --text-muted: #8b8fa3;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --pending: #8b8fa3;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header h1 .badge {
+            background: var(--accent);
+            color: white;
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-refresh {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-refresh:hover { background: var(--border); }
+        .last-updated { font-size: 12px; color: var(--text-muted); }
+
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            overflow-x: auto;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            min-width: 0;
+            flex: 1;
+        }
+        .stat-card .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+        .stat-card .value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+        .stats-divider {
+            width: 2px;
+            background: var(--border);
+            border-radius: 1px;
+            align-self: stretch;
+            flex-shrink: 0;
+        }
+
+        /* Filters */
+        .filters {
+            padding: 12px 24px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .filter-group { display: flex; align-items: center; gap: 6px; }
+        .filter-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+        .filter-select, .filter-input {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+        .filter-select:focus, .filter-input:focus { border-color: var(--accent); }
+        .filter-input { width: 220px; }
+
+        /* Grupos por flujo */
+        .groups-container { padding: 16px 24px; }
+        .module-section { margin-bottom: 28px; }
+        .module-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .flow-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .flow-card:hover { border-color: var(--accent); }
+        .flow-header {
+            display: flex;
+            align-items: center;
+            padding: 14px 18px;
+            cursor: pointer;
+            gap: 16px;
+            user-select: none;
+        }
+        .flow-chevron {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.2s;
+            width: 14px;
+            flex-shrink: 0;
+        }
+        .flow-chevron.open { transform: rotate(90deg); }
+        .flow-name {
+            font-size: 15px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+        }
+        .flow-name .section-tag {
+            display: inline-block;
+            background: var(--surface2);
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        .flow-counters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .counter-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .counter-pill .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .counter-total { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+        .counter-pass { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+        .counter-fail { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+        .counter-pending { background: #8b8fa322; color: #8b8fa3; border: 1px solid #8b8fa344; }
+        .counter-done { background: #12a59422; color: #12a594; border: 1px solid #12a59444; }
+
+        .flow-progress {
+            height: 6px;
+            background: var(--surface2);
+            display: flex;
+            overflow: hidden;
+        }
+        .flow-progress .seg-pass { background: var(--success); }
+        .flow-progress .seg-fail { background: var(--danger); }
+        .flow-progress .seg-done { background: #12a594; }
+        .flow-progress .seg-pending { background: var(--pending); opacity: 0.35; }
+
+        .flow-subtasks {
+            display: none;
+            border-top: 1px solid var(--border);
+        }
+        .flow-subtasks.open { display: block; }
+        .subtask-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px 10px 44px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .subtask-row:last-child { border-bottom: none; }
+        .subtask-row:hover { background: var(--surface2); }
+        .subtask-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .subtask-name { flex: 1; font-size: 13px; min-width: 0; }
+        .subtask-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .subtask-assignees {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .assignee-avatar {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px 20px;
+            overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .modal-header h2 { font-size: 18px; font-weight: 600; line-height: 1.4; flex: 1; padding-right: 16px; }
+        .modal-close {
+            background: none; border: none;
+            color: var(--text-muted); font-size: 24px;
+            cursor: pointer; padding: 4px; line-height: 1;
+        }
+        .modal-close:hover { color: var(--text); }
+        .modal-body { padding: 20px 24px; }
+        .modal-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .meta-item .meta-label {
+            font-size: 11px; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+        }
+        .meta-item .meta-value { font-size: 14px; }
+        .description-block {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 80px 20px; color: var(--text-muted);
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        /* Tabs */
+        .tab-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            color: var(--text-muted);
+            padding: 10px 18px;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active {
+            background: var(--surface);
+            color: var(--text);
+            border-color: var(--accent);
+            border-bottom: 1px solid var(--surface);
+            margin-bottom: -1px;
+        }
+
+        /* Bug card */
+        .bug-group {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+        .bug-group-header {
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+        }
+        .bug-group-header .title {
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+        }
+        .bug-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .bug-row:last-child { border-bottom: none; }
+        .bug-row:hover { background: var(--surface2); }
+        .bug-row .name { flex: 1; font-size: 13px; }
+        .bug-row .meta { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 10px; }
+            .stats-bar { flex-direction: column; }
+            .filters { flex-direction: column; align-items: stretch; }
+            .filter-input { width: 100%; }
+            .flow-header { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>🤖 Panel de Automatizaciones</span>
+            <span class="badge" id="totalBadge">...</span>
+        </h1>
+        <div class="header-actions">
+            <span class="last-updated" id="lastUpdated"></span>
+            <button class="btn-refresh" onclick="window.open('https://agrosistemasweb.github.io/panel-bugs/','_blank')">Panel de Bugs</button>
+            <button class="btn-refresh" onclick="exportPDF()">Exportar PDF</button>
+            <button class="btn-refresh" onclick="loadTasks()">Actualizar</button>
+        </div>
+    </div>
+
+    <!-- Stats globales -->
+    <div class="stats-bar">
+        <div class="stat-card"><div class="label">Casos Totales</div><div class="value" id="statTotal">-</div></div>
+        <div class="stat-card"><div class="label">Flujos Cubiertos</div><div class="value" style="color:var(--accent)" id="statFlows">-</div></div>
+        <div class="stats-divider"></div>
+        <div class="stat-card"><div class="label">✅ Testing Pass</div><div class="value" style="color:#22c55e" id="statPass">-</div></div>
+        <div class="stat-card"><div class="label">🔴 Testing Fail</div><div class="value" style="color:#ef4444" id="statFail">-</div></div>
+        <div class="stat-card"><div class="label">⏸ Pendiente</div><div class="value" style="color:#8b8fa3" id="statPending">-</div></div>
+        <div class="stat-card"><div class="label">🏁 Done</div><div class="value" style="color:#12a594" id="statDone">-</div></div>
+        <div class="stats-divider"></div>
+        <div class="stat-card"><div class="label">% Cobertura</div><div class="value" style="color:var(--accent)" id="statCoverage">-</div></div>
+        <div class="stats-divider"></div>
+        <div class="stat-card"><div class="label">🐛 Bugs en Desarrollo</div><div class="value" style="color:#f97316" id="statBugsDev">-</div></div>
+        <div class="stat-card"><div class="label">🧪 Bugs a Testear</div><div class="value" style="color:#ffc53d" id="statBugsQa">-</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="filters" style="border-bottom:none; padding-bottom:0;">
+        <div class="tab-row" style="display:flex; gap:4px;">
+            <button class="tab-btn active" data-tab="auto" onclick="switchTab('auto')">🤖 Automatizaciones</button>
+            <button class="tab-btn" data-tab="bugs" onclick="switchTab('bugs')">🐛 Bugs Encontrados</button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filter-group">
+            <label>Buscar:</label>
+            <input type="text" class="filter-input" id="filterSearch" placeholder="Buscar por nombre..." oninput="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label>Sección:</label>
+            <select class="filter-select" id="filterSection" onchange="applyFilters()">
+                <option value="">Todas</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Estado:</label>
+            <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+                <option value="">Todos</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="testing pass">Testing Pass</option>
+                <option value="testing fail">Testing Fail</option>
+                <option value="done">Done</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>
+                <input type="checkbox" id="filterExpandAll" onchange="toggleExpandAll()"> Expandir todo
+            </label>
+        </div>
+    </div>
+
+    <!-- Groups -->
+    <div class="groups-container">
+        <div id="loadingArea">
+            <div class="loading">
+                <div class="spinner"></div>
+                <span>Cargando automatizaciones y bugs desde ClickUp...</span>
+            </div>
+        </div>
+        <div id="groupsArea" style="display:none"></div>
+        <div id="bugsArea" style="display:none"></div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 id="modalTitle"></h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-meta" id="modalMeta"></div>
+                <h3 style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">DESCRIPCIÓN</h3>
+                <div class="description-block" id="modalDescription"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WORKER_URL = 'https://panel-bugs-proxy.lorena-ruiz-e63.workers.dev';
+        const LIST_ID = '901326925580';       // Sprint Automation Contable
+        const BUGS_LIST_ID = '901326731539';   // Sprint 5 Modulo Contable (bugs reactivos)
+        const AUTO_REFRESH_MS = 5 * 60 * 1000; // auto-refresh cada 5 min
+
+        const STATUS_CONFIG = {
+            'pendiente':    { color: '#8b8fa3', label: 'Pendiente' },
+            'testing pass': { color: '#22c55e', label: 'Testing Pass' },
+            'testing fail': { color: '#ef4444', label: 'Testing Fail' },
+            'done':         { color: '#12a594', label: 'Done' }
+        };
+        const ASSIGNEE_COLORS = ['#6366f1','#ec4899','#f59e0b','#22c55e','#3b82f6','#8b5cf6','#ef4444','#14b8a6'];
+
+        let allTasks = [];
+        let allBugs = [];
+        let groupedFlows = [];
+        let expandedFlows = new Set();
+        let currentTab = 'auto';
+
+        // Estados "en desarrollo" o "a testear" del Sprint 5
+        const BUG_DEV_STATUSES = ['to do', 'a revisar', 'in progress', 'blocked', 'review'];
+        const BUG_QA_STATUSES  = ['waiting qa', 'qa', 'automation'];
+
+        async function apiGet(path) {
+            const resp = await fetch(`${WORKER_URL}${path}`);
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || `Error ${resp.status}`);
+            }
+            return resp.json();
+        }
+
+        async function fetchAllPages(listId) {
+            let tasks = [];
+            let page = 0;
+            let hasMore = true;
+            while (hasMore) {
+                const data = await apiGet(`/api/tasks?list_id=${listId}&page=${page}&include_closed=true&subtasks=true`);
+                tasks = tasks.concat(data.tasks);
+                hasMore = data.tasks.length === 100;
+                page++;
+            }
+            return tasks;
+        }
+
+        function mapTask(t) {
+            return {
+                id: t.id,
+                name: t.name,
+                description: t.text_content || t.description || '',
+                status: t.status.status.toLowerCase(),
+                statusColor: t.status.color,
+                assignees: t.assignees.map(a => ({
+                    name: a.username, initials: a.initials,
+                    color: a.color || ASSIGNEE_COLORS[0]
+                })),
+                tags: t.tags.map(tag => tag.name),
+                priority: t.priority ? t.priority.priority : 'none',
+                dateCreated: new Date(parseInt(t.date_created)),
+                dateUpdated: t.date_updated ? new Date(parseInt(t.date_updated)) : null,
+                url: t.url,
+                parent: t.parent
+            };
+        }
+
+        async function loadTasks() {
+            document.getElementById('loadingArea').style.display = 'block';
+            document.getElementById('groupsArea').style.display = 'none';
+            document.getElementById('bugsArea').style.display = 'none';
+
+            try {
+                const [autoTasks, bugTasks] = await Promise.all([
+                    fetchAllPages(LIST_ID),
+                    fetchAllPages(BUGS_LIST_ID)
+                ]);
+
+                allTasks = autoTasks.map(mapTask);
+                allBugs = bugTasks.map(mapTask);
+
+                groupTasks();
+                populateSectionFilter();
+                applyFilters();
+                updateStats();
+                renderBugs();
+                document.getElementById('lastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+
+            } catch (err) {
+                document.getElementById('loadingArea').innerHTML =
+                    `<div class="loading" style="color:var(--danger)">
+                        Error al cargar: ${escapeHtml(err.message)}<br><br>
+                        <button class="btn-refresh" onclick="loadTasks()">Reintentar</button>
+                    </div>`;
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            document.getElementById('groupsArea').style.display = tab === 'auto' ? 'block' : 'none';
+            document.getElementById('bugsArea').style.display = tab === 'bugs' ? 'block' : 'none';
+        }
+
+        // Parsea "Modulo Contable - Listas - Cuentas Corrientes (ABM)" → { module, section, flow }
+        function parseFlowName(name) {
+            const parts = name.split(' - ').map(s => s.trim());
+            if (parts.length >= 3) {
+                return { module: parts[0], section: parts[1], flow: parts.slice(2).join(' - ') };
+            }
+            if (parts.length === 2) {
+                return { module: parts[0], section: '—', flow: parts[1] };
+            }
+            return { module: 'Sin clasificar', section: '—', flow: name };
+        }
+
+        function groupTasks() {
+            const parents = allTasks.filter(t => !t.parent);
+            const subs = allTasks.filter(t => t.parent);
+
+            groupedFlows = parents.map(p => {
+                const parsed = parseFlowName(p.name);
+                const subtasks = subs.filter(s => s.parent === p.id);
+                const counts = {
+                    total: subtasks.length,
+                    pass: subtasks.filter(s => s.status === 'testing pass').length,
+                    fail: subtasks.filter(s => s.status === 'testing fail').length,
+                    pending: subtasks.filter(s => s.status === 'pendiente').length,
+                    done: subtasks.filter(s => s.status === 'done').length
+                };
+                return { parent: p, ...parsed, subtasks, counts };
+            });
+
+            // Orden: por sección, luego por nombre de flujo
+            groupedFlows.sort((a, b) => {
+                if (a.section !== b.section) return a.section.localeCompare(b.section);
+                return a.flow.localeCompare(b.flow);
+            });
+        }
+
+        function populateSectionFilter() {
+            const sections = [...new Set(groupedFlows.map(g => g.section))].sort();
+            const sel = document.getElementById('filterSection');
+            sel.innerHTML = '<option value="">Todas</option>';
+            sections.forEach(s => { sel.innerHTML += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`; });
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+            const section = document.getElementById('filterSection').value;
+            const status = document.getElementById('filterStatus').value;
+
+            const filtered = groupedFlows
+                .map(g => {
+                    let subs = g.subtasks;
+                    if (search) subs = subs.filter(s => s.name.toLowerCase().includes(search));
+                    if (status) subs = subs.filter(s => s.status === status);
+                    return { ...g, visibleSubs: subs };
+                })
+                .filter(g => {
+                    if (section && g.section !== section) return false;
+                    if (search && !g.flow.toLowerCase().includes(search) && g.visibleSubs.length === 0) return false;
+                    if (status && g.visibleSubs.length === 0) return false;
+                    return true;
+                });
+
+            renderGroups(filtered);
+        }
+
+        function renderGroups(flows) {
+            const area = document.getElementById('groupsArea');
+            area.innerHTML = '';
+
+            if (flows.length === 0) {
+                area.innerHTML = '<div class="empty-state">No se encontraron flujos con los filtros aplicados.</div>';
+                document.getElementById('loadingArea').style.display = 'none';
+                area.style.display = 'block';
+                return;
+            }
+
+            // Agrupar por sección
+            const bySection = {};
+            flows.forEach(f => {
+                if (!bySection[f.section]) bySection[f.section] = [];
+                bySection[f.section].push(f);
+            });
+
+            Object.keys(bySection).sort().forEach(sectionName => {
+                const sectionFlows = bySection[sectionName];
+                const totalSubs = sectionFlows.reduce((a, f) => a + f.counts.total, 0);
+
+                const section = document.createElement('div');
+                section.className = 'module-section';
+                section.innerHTML = `<div class="module-title">📂 ${escapeHtml(sectionName)} — ${sectionFlows.length} flujos · ${totalSubs} casos</div>`;
+
+                sectionFlows.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = 'flow-card';
+                    const c = f.counts;
+                    const progressPass = c.total > 0 ? (c.pass / c.total * 100) : 0;
+                    const progressFail = c.total > 0 ? (c.fail / c.total * 100) : 0;
+                    const progressDone = c.total > 0 ? (c.done / c.total * 100) : 0;
+                    const progressPending = c.total > 0 ? (c.pending / c.total * 100) : 0;
+                    const isOpen = expandedFlows.has(f.parent.id);
+
+                    const subsToShow = f.visibleSubs || f.subtasks;
+
+                    card.innerHTML = `
+                        <div class="flow-header" onclick="toggleFlow('${f.parent.id}')">
+                            <span class="flow-chevron${isOpen ? ' open' : ''}">▶</span>
+                            <div class="flow-name">
+                                <span class="section-tag">${escapeHtml(f.section)}</span>
+                                ${escapeHtml(f.flow)}
+                            </div>
+                            <div class="flow-counters">
+                                <span class="counter-pill counter-total"><span class="dot" style="background:var(--text-muted)"></span>${c.total} casos</span>
+                                ${c.pass ? `<span class="counter-pill counter-pass"><span class="dot" style="background:#22c55e"></span>${c.pass} pass</span>` : ''}
+                                ${c.fail ? `<span class="counter-pill counter-fail"><span class="dot" style="background:#ef4444"></span>${c.fail} fail</span>` : ''}
+                                ${c.pending ? `<span class="counter-pill counter-pending"><span class="dot" style="background:#8b8fa3"></span>${c.pending} pend</span>` : ''}
+                                ${c.done ? `<span class="counter-pill counter-done"><span class="dot" style="background:#12a594"></span>${c.done} done</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flow-progress">
+                            <div class="seg-pass" style="width:${progressPass}%"></div>
+                            <div class="seg-done" style="width:${progressDone}%"></div>
+                            <div class="seg-fail" style="width:${progressFail}%"></div>
+                            <div class="seg-pending" style="width:${progressPending}%"></div>
+                        </div>
+                        <div class="flow-subtasks${isOpen ? ' open' : ''}" id="subs-${f.parent.id}">
+                            ${subsToShow.map(s => renderSubtask(s)).join('')}
+                        </div>
+                    `;
+                    section.appendChild(card);
+                });
+
+                area.appendChild(section);
+            });
+
+            document.getElementById('loadingArea').style.display = 'none';
+            area.style.display = 'block';
+        }
+
+        function renderSubtask(s) {
+            const cfg = STATUS_CONFIG[s.status] || { color: '#8b8fa3', label: s.status };
+            const assignees = s.assignees.map((a, i) =>
+                `<span class="assignee-avatar" title="${escapeHtml(a.name)}" style="background:${a.color || ASSIGNEE_COLORS[i%8]}">${a.initials}</span>`
+            ).join('');
+            return `
+                <div class="subtask-row" onclick="openDetail('${s.id}')">
+                    <span class="subtask-status" style="background:${cfg.color}"></span>
+                    <span class="subtask-name">${escapeHtml(s.name)}</span>
+                    <span class="subtask-badge" style="background:${cfg.color}22;color:${cfg.color};border:1px solid ${cfg.color}44">${cfg.label}</span>
+                    <span class="subtask-assignees">${assignees}</span>
+                </div>
+            `;
+        }
+
+        function toggleFlow(id) {
+            if (expandedFlows.has(id)) expandedFlows.delete(id);
+            else expandedFlows.add(id);
+            applyFilters();
+        }
+
+        function toggleExpandAll() {
+            const checked = document.getElementById('filterExpandAll').checked;
+            if (checked) groupedFlows.forEach(g => expandedFlows.add(g.parent.id));
+            else expandedFlows.clear();
+            applyFilters();
+        }
+
+        function updateStats() {
+            const subs = allTasks.filter(t => t.parent);
+            const pass = subs.filter(t => t.status === 'testing pass').length;
+            const fail = subs.filter(t => t.status === 'testing fail').length;
+            const pending = subs.filter(t => t.status === 'pendiente').length;
+            const done = subs.filter(t => t.status === 'done').length;
+            const total = subs.length;
+            const implemented = pass + fail + done;
+            const coverage = total > 0 ? Math.round(implemented / total * 100) : 0;
+
+            const bugsDev = allBugs.filter(b => BUG_DEV_STATUSES.includes(b.status)).length;
+            const bugsQa = allBugs.filter(b => BUG_QA_STATUSES.includes(b.status)).length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statFlows').textContent = groupedFlows.length;
+            document.getElementById('statPass').textContent = pass;
+            document.getElementById('statFail').textContent = fail;
+            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statDone').textContent = done;
+            document.getElementById('statCoverage').textContent = coverage + '%';
+            document.getElementById('statBugsDev').textContent = bugsDev;
+            document.getElementById('statBugsQa').textContent = bugsQa;
+            document.getElementById('totalBadge').textContent = total + ' casos · ' + groupedFlows.length + ' flujos';
+        }
+
+        function renderBugs() {
+            const area = document.getElementById('bugsArea');
+            const dev = allBugs.filter(b => BUG_DEV_STATUSES.includes(b.status));
+            const qa = allBugs.filter(b => BUG_QA_STATUSES.includes(b.status));
+            const done = allBugs.filter(b => b.status === 'done' || b.status === 'closed');
+
+            // Agrupar por estado dentro de dev y qa
+            const groupByStatus = (arr) => {
+                const m = {};
+                arr.forEach(b => { if (!m[b.status]) m[b.status] = []; m[b.status].push(b); });
+                return m;
+            };
+
+            const STATUS_COLORS = {
+                'to do': '#87909e', 'a revisar': '#d97706',
+                'in progress': '#1090e0', 'blocked': '#f76808',
+                'review': '#ab4aba', 'waiting qa': '#ffc53d',
+                'qa': '#1090e0', 'automation': '#8b5cf6',
+                'done': '#12a594', 'closed': '#008844'
+            };
+
+            const renderGroup = (title, icon, tasksByStatus) => {
+                const total = Object.values(tasksByStatus).reduce((a,arr) => a+arr.length, 0);
+                if (total === 0) return '';
+                let h = `<div class="bug-group">
+                    <div class="bug-group-header">
+                        <span style="font-size:18px">${icon}</span>
+                        <span class="title">${title}</span>
+                        <span class="counter-pill counter-total">${total}</span>
+                    </div>`;
+                Object.keys(tasksByStatus).sort().forEach(st => {
+                    const color = STATUS_COLORS[st] || '#87909e';
+                    h += `<div style="padding:8px 18px;background:var(--bg);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border)">
+                        <span class="subtask-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${st}</span>
+                        <span style="margin-left:8px">${tasksByStatus[st].length} tarea${tasksByStatus[st].length!==1?'s':''}</span>
+                    </div>`;
+                    tasksByStatus[st].forEach(b => {
+                        const assignees = b.assignees.map((a,i) =>
+                            `<span class="assignee-avatar" title="${escapeHtml(a.name)}" style="background:${a.color || ASSIGNEE_COLORS[i%8]}">${a.initials}</span>`
+                        ).join('');
+                        const date = b.dateCreated.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'});
+                        h += `<div class="bug-row" onclick="openBugDetail('${b.id}')">
+                            <span class="subtask-status" style="background:${color}"></span>
+                            <span class="name">${escapeHtml(b.name)}</span>
+                            <span class="subtask-assignees">${assignees}</span>
+                            <span class="meta">${date}</span>
+                        </div>`;
+                    });
+                });
+                h += `</div>`;
+                return h;
+            };
+
+            let html = '';
+            html += `<div class="module-title" style="margin-top:8px">🐛 Bugs encontrados · Sprint 5 Módulo Contable</div>`;
+            html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Total: ${allBugs.length} · En desarrollo: ${dev.length} · A testear / QA: ${qa.length} · Cerrados: ${done.length}</div>`;
+            html += renderGroup('En desarrollo (a arreglar)', '🔧', groupByStatus(dev));
+            html += renderGroup('A testear / QA', '🧪', groupByStatus(qa));
+            html += renderGroup(`Cerrados / Resueltos (${done.length})`, '✅', groupByStatus(done.slice(0, 30)));
+            if (done.length > 30) {
+                html += `<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:12px">Mostrando los 30 más recientes de ${done.length} cerrados</div>`;
+            }
+
+            area.innerHTML = html || '<div class="empty-state">No hay bugs registrados.</div>';
+        }
+
+        function openBugDetail(taskId) {
+            const task = allBugs.find(t => t.id === taskId);
+            if (!task) return;
+            const color = task.statusColor || '#87909e';
+            document.getElementById('modalTitle').textContent = task.name;
+            document.getElementById('modalMeta').innerHTML = `
+                <div class="meta-item"><div class="meta-label">Estado</div><div class="meta-value"><span class="subtask-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${task.status}</span></div></div>
+                <div class="meta-item"><div class="meta-label">Prioridad</div><div class="meta-value">${task.priority !== 'none' ? task.priority : '-'}</div></div>
+                <div class="meta-item"><div class="meta-label">Asignados</div><div class="meta-value">${task.assignees.map(a=>a.name).join(', ')||'Sin asignar'}</div></div>
+                <div class="meta-item"><div class="meta-label">Creado</div><div class="meta-value">${task.dateCreated.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+                <div class="meta-item"><div class="meta-label">Tags</div><div class="meta-value">${task.tags.join(', ')||'-'}</div></div>
+                <div class="meta-item"><div class="meta-label">Link ClickUp</div><div class="meta-value"><a href="${task.url}" target="_blank" style="color:var(--accent)">${task.id}</a></div></div>
+            `;
+            document.getElementById('modalDescription').textContent = task.description || '(Sin descripción)';
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function openDetail(taskId) {
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
+            const cfg = STATUS_CONFIG[task.status] || { color: '#8b8fa3', label: task.status };
+            document.getElementById('modalTitle').textContent = task.name;
+            document.getElementById('modalMeta').innerHTML = `
+                <div class="meta-item"><div class="meta-label">Estado</div><div class="meta-value"><span class="subtask-badge" style="background:${cfg.color}22;color:${cfg.color};border:1px solid ${cfg.color}44">${cfg.label}</span></div></div>
+                <div class="meta-item"><div class="meta-label">Asignados</div><div class="meta-value">${task.assignees.map(a=>a.name).join(', ')||'Sin asignar'}</div></div>
+                <div class="meta-item"><div class="meta-label">Creado</div><div class="meta-value">${task.dateCreated.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+                <div class="meta-item"><div class="meta-label">Tags</div><div class="meta-value">${task.tags.join(', ')||'-'}</div></div>
+                <div class="meta-item"><div class="meta-label">Link ClickUp</div><div class="meta-value"><a href="${task.url}" target="_blank" style="color:var(--accent)">${task.id}</a></div></div>
+            `;
+            document.getElementById('modalDescription').textContent = task.description || '(Sin descripción)';
+            document.getElementById('modalOverlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== document.getElementById('modalOverlay')) return;
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+        function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+        function exportPDF() {
+            const now = new Date().toLocaleDateString('es-AR');
+            const total = allTasks.filter(t => t.parent).length;
+
+            let html = `<html><head><meta charset="UTF-8"><title>Informe Automatizaciones</title><style>
+                body { font-family: Arial, sans-serif; font-size: 11px; color: #222; padding: 20px; }
+                h1 { font-size: 18px; margin-bottom: 4px; }
+                h2 { font-size: 14px; margin-top: 16px; margin-bottom: 8px; color: #444; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+                .subtitle { color: #666; font-size: 12px; margin-bottom: 16px; }
+                .stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+                .stat { background: #f5f5f5; border-radius: 8px; padding: 8px 14px; text-align: center; }
+                .stat .val { font-size: 20px; font-weight: 700; }
+                .stat .lbl { font-size: 10px; color: #666; text-transform: uppercase; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 14px; }
+                th { background: #333; color: white; padding: 6px 8px; text-align: left; font-size: 10px; text-transform: uppercase; }
+                td { padding: 5px 8px; border-bottom: 1px solid #ddd; font-size: 10px; }
+                tr:nth-child(even) { background: #f9f9f9; }
+                .pass { color: #22c55e; font-weight: 600; }
+                .fail { color: #ef4444; font-weight: 600; }
+                .pending { color: #8b8fa3; }
+                .done { color: #12a594; font-weight: 600; }
+                @media print { body { padding: 0; } }
+            </style></head><body>`;
+            html += `<h1>Panel de Automatizaciones — Módulo Contable</h1>`;
+            html += `<div class="subtitle">Informe generado: ${now} · ${total} casos automatizados · ${groupedFlows.length} flujos cubiertos</div>`;
+
+            const pass = allTasks.filter(t => t.parent && t.status === 'testing pass').length;
+            const fail = allTasks.filter(t => t.parent && t.status === 'testing fail').length;
+            const pending = allTasks.filter(t => t.parent && t.status === 'pendiente').length;
+            const done = allTasks.filter(t => t.parent && t.status === 'done').length;
+            const coverage = total > 0 ? Math.round((pass + fail + done) / total * 100) : 0;
+
+            html += '<div class="stats">';
+            html += `<div class="stat"><div class="val">${total}</div><div class="lbl">Total</div></div>`;
+            html += `<div class="stat"><div class="val" style="color:#22c55e">${pass}</div><div class="lbl">Testing Pass</div></div>`;
+            html += `<div class="stat"><div class="val" style="color:#ef4444">${fail}</div><div class="lbl">Testing Fail</div></div>`;
+            html += `<div class="stat"><div class="val" style="color:#8b8fa3">${pending}</div><div class="lbl">Pendiente</div></div>`;
+            html += `<div class="stat"><div class="val" style="color:#12a594">${done}</div><div class="lbl">Done</div></div>`;
+            html += `<div class="stat"><div class="val">${coverage}%</div><div class="lbl">Cobertura</div></div>`;
+            html += '</div>';
+
+            // Resumen por flujo
+            html += '<h2>Resumen por Flujo</h2>';
+            html += '<table><thead><tr><th>Sección</th><th>Flujo</th><th>Total</th><th>Pass</th><th>Fail</th><th>Pendiente</th><th>Done</th></tr></thead><tbody>';
+            groupedFlows.forEach(f => {
+                const c = f.counts;
+                html += `<tr>
+                    <td>${escapeHtml(f.section)}</td>
+                    <td>${escapeHtml(f.flow)}</td>
+                    <td><b>${c.total}</b></td>
+                    <td class="pass">${c.pass}</td>
+                    <td class="fail">${c.fail}</td>
+                    <td class="pending">${c.pending}</td>
+                    <td class="done">${c.done}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+
+            // Detalle por flujo
+            groupedFlows.forEach(f => {
+                html += `<h2>${escapeHtml(f.section)} — ${escapeHtml(f.flow)} (${f.counts.total} casos)</h2>`;
+                html += '<table><thead><tr><th style="width:55%">Caso</th><th>Estado</th><th>Asignados</th></tr></thead><tbody>';
+                f.subtasks.forEach(s => {
+                    const cls = s.status === 'testing pass' ? 'pass' : s.status === 'testing fail' ? 'fail' : s.status === 'done' ? 'done' : 'pending';
+                    html += `<tr><td>${escapeHtml(s.name)}</td><td class="${cls}">${s.status.toUpperCase()}</td><td>${s.assignees.map(a=>a.name).join(', ')||'-'}</td></tr>`;
+                });
+                html += '</tbody></table>';
+            });
+
+            html += '</body></html>';
+            const win = window.open('', '_blank');
+            win.document.write(html);
+            win.document.close();
+            setTimeout(() => { win.print(); }, 500);
+        }
+
+        loadTasks();
+        setInterval(loadTasks, AUTO_REFRESH_MS); // Auto-refresh cada 5 minutos para reflejar nuevos casos
+    </script>
+</body>
+</html>
