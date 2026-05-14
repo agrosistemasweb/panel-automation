@@ -528,8 +528,16 @@
         let currentTab = 'auto';
 
         // Estados "en desarrollo" o "a testear" del Sprint 5
-        const BUG_DEV_STATUSES = ['to do', 'a revisar', 'in progress', 'blocked', 'review'];
-        const BUG_QA_STATUSES  = ['waiting qa', 'qa', 'automation'];
+        // Incluye estados en español (sprints actuales) y en inglés (sprints viejos)
+        const BUG_DEV_STATUSES = [
+            'pendiente', 'reabiertas', 'en curso', 'bloqueado', 'automation',
+            'listo para  revision', 'listo para revision',
+            'to do', 'a revisar', 'in progress', 'blocked', 'review'
+        ];
+        const BUG_QA_STATUSES  = [
+            'listo  para qa', 'listo para qa', 'en qa',
+            'waiting qa', 'qa'
+        ];
 
         async function apiGet(path) {
             const resp = await fetch(`${WORKER_URL}${path}`);
@@ -805,7 +813,7 @@
             const area = document.getElementById('bugsArea');
             const dev = allBugs.filter(b => BUG_DEV_STATUSES.includes(b.status));
             const qa = allBugs.filter(b => BUG_QA_STATUSES.includes(b.status));
-            const done = allBugs.filter(b => b.status === 'done' || b.status === 'closed');
+            const done = allBugs.filter(b => b.status === 'done' || b.status === 'closed' || b.status === 'terminado' || b.status === 'cerrado');
 
             // Agrupar por estado dentro de dev y qa
             const groupByStatus = (arr) => {
@@ -815,11 +823,19 @@
             };
 
             const STATUS_COLORS = {
+                // Inglés (sprints viejos)
                 'to do': '#87909e', 'a revisar': '#d97706',
                 'in progress': '#1090e0', 'blocked': '#f76808',
                 'review': '#ab4aba', 'waiting qa': '#ffc53d',
                 'qa': '#1090e0', 'automation': '#8b5cf6',
-                'done': '#12a594', 'closed': '#008844'
+                'done': '#12a594', 'closed': '#008844',
+                // Español (sprints actuales)
+                'pendiente': '#87909e', 'reabiertas': '#d97706',
+                'en curso': '#1090e0', 'bloqueado': '#f76808',
+                'listo para  revision': '#ab4aba', 'listo para revision': '#ab4aba',
+                'listo  para qa': '#ffc53d', 'listo para qa': '#ffc53d',
+                'en qa': '#1090e0',
+                'terminado': '#12a594', 'cerrado': '#008844'
             };
 
             const renderGroup = (title, icon, tasksByStatus) => {
