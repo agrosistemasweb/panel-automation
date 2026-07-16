@@ -448,6 +448,7 @@
         <div class="tab-row" style="display:flex; gap:4px;">
             <button class="tab-btn active" data-tab="auto" onclick="switchTab('auto')">🤖 Automatizaciones</button>
             <button class="tab-btn" data-tab="bugs" onclick="switchTab('bugs')">🐛 Bugs Encontrados</button>
+            <button class="tab-btn" data-tab="qa" onclick="switchTab('qa')">✅ Paridad QA</button>
         </div>
     </div>
 
@@ -490,6 +491,7 @@
         </div>
         <div id="groupsArea" style="display:none"></div>
         <div id="bugsArea" style="display:none"></div>
+        <div id="qaArea" style="display:none"></div>
     </div>
 
     <!-- Detail Modal -->
@@ -511,6 +513,7 @@
         const WORKER_URL = 'https://panel-bugs-proxy.lorena-ruiz-e63.workers.dev';
         const LIST_ID = '901326925580';       // Sprint Automation Contable
         const BUGS_LIST_ID = '901326731539';   // Sprint 5 Modulo Contable (bugs reactivos)
+        const QA_LIST_ID = '901327837225';     // Matriz de Cobertura (paridad/automatización QA nuevas)
         const AUTO_REFRESH_MS = 5 * 60 * 1000; // auto-refresh cada 5 min
 
         const STATUS_CONFIG = {
@@ -523,6 +526,7 @@
 
         let allTasks = [];
         let allBugs = [];
+        let allQA = [];
         let groupedFlows = [];
         let expandedFlows = new Set();
         let currentTab = 'auto';
@@ -585,21 +589,25 @@
             document.getElementById('loadingArea').style.display = 'block';
             document.getElementById('groupsArea').style.display = 'none';
             document.getElementById('bugsArea').style.display = 'none';
+            document.getElementById('qaArea').style.display = 'none';
 
             try {
-                const [autoTasks, bugTasks] = await Promise.all([
+                const [autoTasks, bugTasks, qaTasks] = await Promise.all([
                     fetchAllPages(LIST_ID),
-                    fetchAllPages(BUGS_LIST_ID)
+                    fetchAllPages(BUGS_LIST_ID),
+                    fetchAllPages(QA_LIST_ID)
                 ]);
 
                 allTasks = autoTasks.map(mapTask);
                 allBugs = bugTasks.map(mapTask);
+                allQA = qaTasks.map(mapTask);
 
                 groupTasks();
                 populateSectionFilter();
                 applyFilters();
                 updateStats();
                 renderBugs();
+                renderQA();
                 document.getElementById('lastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
 
             } catch (err) {
@@ -616,6 +624,33 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
             document.getElementById('groupsArea').style.display = tab === 'auto' ? 'block' : 'none';
             document.getElementById('bugsArea').style.display = tab === 'bugs' ? 'block' : 'none';
+            document.getElementById('qaArea').style.display = tab === 'qa' ? 'block' : 'none';
+        }
+
+        // Render pestaña "Paridad QA" desde la lista Matriz de Cobertura
+        function renderQA() {
+            const area = document.getElementById('qaArea');
+            if (!allQA.length) {
+                area.innerHTML = '<div class="loading">Sin datos de cobertura QA.</div>';
+                return;
+            }
+            const auto = allQA.filter(m => m.name.startsWith('✅'));
+            const doc = allQA.filter(m => !m.name.startsWith('✅'));
+            const card = m => {
+                const desc = escapeHtml(m.description || '').replace(/\n/g, '<br>');
+                return `<div style="padding:12px 14px; margin-bottom:8px; border-radius:8px;
+                    border:1px solid var(--border); background:rgba(255,255,255,0.02)">
+                    <div style="font-weight:600; margin-bottom:6px">
+                      <a href="${m.url}" target="_blank" style="color:var(--text); text-decoration:none">${escapeHtml(m.name)}</a>
+                    </div>
+                    <div style="font-size:13px; color:var(--text-muted); line-height:1.55">${desc}</div>
+                </div>`;
+            };
+            let html = `<div class="module-title" style="margin-top:8px">✅ Automatizado / Paridad real (${auto.length})</div>`;
+            auto.forEach(m => { html += card(m); });
+            html += `<div class="module-title" style="margin-top:14px">📝 Documentado — pendiente de merge/automatizar (${doc.length})</div>`;
+            doc.forEach(m => { html += card(m); });
+            area.innerHTML = html;
         }
 
         // Parsea "Modulo Contable - Listas - Cuentas Corrientes (ABM)" → { module, section, flow }
