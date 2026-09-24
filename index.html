@@ -434,8 +434,8 @@
         </h1>
         <div class="header-actions">
             <div class="mod-switch" id="modSwitch">
-                <button class="mod-btn active" data-mod="todos"    onclick="switchModulo('todos')">Todos</button>
-                <button class="mod-btn"        data-mod="insumos"  onclick="switchModulo('insumos')">Insumos</button>
+                <button class="mod-btn"        data-mod="todos"    onclick="switchModulo('todos')">Todos</button>
+                <button class="mod-btn active" data-mod="insumos"  onclick="switchModulo('insumos')">Insumos</button>
                 <button class="mod-btn"        data-mod="contable" onclick="switchModulo('contable')">Contable</button>
             </div>
             <span class="last-updated" id="lastUpdated"></span>
@@ -557,7 +557,9 @@
             qa:   ['901327837225']
         };
 
-        let moduloActual = localStorage_get('panel-modulo') || 'todos';
+        // Hoy el foco es Insumos (rama integracion-insumos-baseui-development); el que
+// haya elegido otro módulo antes lo recupera de su navegador.
+        let moduloActual = localStorage_get('panel-modulo') || 'insumos';
 
         function localStorage_get(k) {
             try { return localStorage.getItem(k); } catch (e) { return null; }
