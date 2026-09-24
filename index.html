@@ -91,6 +91,7 @@
             margin-bottom: 4px;
             white-space: nowrap;
         }
+        .stat-card .sub { font-size: 11px; color: #8b8fa3; margin-top: 2px; letter-spacing: .02em; }
         .stat-card .value {
             font-size: 26px;
             font-weight: 700;
@@ -448,14 +449,14 @@
     <!-- Stats globales -->
     <div class="stats-bar">
         <div class="stat-card"><div class="label">Casos Totales</div><div class="value" id="statTotal">-</div></div>
-        <div class="stat-card"><div class="label">Flujos Cubiertos</div><div class="value" style="color:var(--accent)" id="statFlows">-</div></div>
+        <div class="stat-card"><div class="label">Flujos</div><div class="value" style="color:var(--accent)" id="statFlows">-</div><div class="sub" id="statFlowsSub"></div></div>
         <div class="stats-divider"></div>
         <div class="stat-card"><div class="label">✅ Testing Pass</div><div class="value" style="color:#22c55e" id="statPass">-</div></div>
         <div class="stat-card"><div class="label">🔴 Testing Fail</div><div class="value" style="color:#ef4444" id="statFail">-</div></div>
         <div class="stat-card"><div class="label">⏸ Pendiente</div><div class="value" style="color:#8b8fa3" id="statPending">-</div></div>
         <div class="stat-card"><div class="label">🏁 Done</div><div class="value" style="color:#12a594" id="statDone">-</div></div>
         <div class="stats-divider"></div>
-        <div class="stat-card"><div class="label">% Cobertura</div><div class="value" style="color:var(--accent)" id="statCoverage">-</div></div>
+        <div class="stat-card"><div class="label">% Cobertura</div><div class="value" style="color:var(--accent)" id="statCoverage">-</div><div class="sub" id="statCoverageSub"></div></div>
         <div class="stats-divider"></div>
         <div class="stat-card"><div class="label">🐛 Bugs en Desarrollo</div><div class="value" style="color:#f97316" id="statBugsDev">-</div></div>
         <div class="stat-card"><div class="label">🧪 Bugs a Testear</div><div class="value" style="color:#ffc53d" id="statBugsQa">-</div></div>
@@ -676,7 +677,8 @@
                 dateCreated: new Date(parseInt(t.date_created)),
                 dateUpdated: t.date_updated ? new Date(parseInt(t.date_updated)) : null,
                 url: t.url,
-                parent: t.parent
+                parent: t.parent,
+                listId: t.list ? t.list.id : ''
             };
         }
 
@@ -959,19 +961,43 @@
             if (formularios.length) pending += sinTest;
 
             const total = subs.length + casosForm;
-            const implemented = pass + fail + done;
-            const coverage = total > 0 ? Math.round(implemented / total * 100) : 0;
+
+            // % Cobertura = cuánto del universo a probar YA tiene test, no cuánto
+            // de lo automatizado está en verde (eso daba 100% con 3 formularios de
+            // 131 cubiertos). La unidad es distinta en cada módulo:
+            //   Contable -> la subtarea: cubierta si salió de "pendiente"
+            //   Insumos  -> el formulario: cubierto si tiene la marca del test
+            const listasInsumos = MODULOS.insumos.auto;
+            const esDeInsumos = t => listasInsumos.includes(t.listId);
+            const univInsumos = allTasks.filter(t => !t.parent && esDeInsumos(t));
+            const cubInsumos = univInsumos.filter(esAutomatizado).length;
+            const univContable = subs.filter(t => !esDeInsumos(t));
+            const cubContable = univContable.filter(t => t.status !== 'pendiente').length;
+
+            const univ = univContable.length + univInsumos.length;
+            const cubiertas = cubContable + cubInsumos;
+            const coverage = univ > 0 ? Math.round(cubiertas / univ * 100) : 0;
+            const coverageDetalle = univ > 0
+                ? cubiertas + ' de ' + univ + (univInsumos.length && !univContable.length
+                    ? ' formularios con test automatizado' : ' unidades con test')
+                : 'sin universo cargado';
 
             const bugsDev = allBugs.filter(b => BUG_DEV_STATUSES.includes(b.status)).length;
             const bugsQa = allBugs.filter(b => BUG_QA_STATUSES.includes(b.status)).length;
 
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statFlows').textContent = groupedFlows.length;
+            const subFlows = document.getElementById('statFlowsSub');
+            if (subFlows) subFlows.textContent = cubiertas + ' con test';
             document.getElementById('statPass').textContent = pass;
             document.getElementById('statFail').textContent = fail;
             document.getElementById('statPending').textContent = pending;
             document.getElementById('statDone').textContent = done;
-            document.getElementById('statCoverage').textContent = coverage + '%';
+            const elCov = document.getElementById('statCoverage');
+            elCov.textContent = coverage + '%';
+            elCov.title = coverageDetalle;
+            const subCov = document.getElementById('statCoverageSub');
+            if (subCov) subCov.textContent = cubiertas + '/' + univ;
             document.getElementById('statBugsDev').textContent = bugsDev;
             document.getElementById('statBugsQa').textContent = bugsQa;
             const conTest = allTasks.filter(esAutomatizado).length;
