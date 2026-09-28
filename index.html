@@ -753,11 +753,16 @@
             area.innerHTML = html;
         }
 
-        // Parsea "Modulo Contable - Listas - Cuentas Corrientes (ABM)" → { module, section, flow }
+        // Cada módulo nombra sus tarjetas a su manera y el separador no es el mismo:
+        //   Contable  "Modulo Contable - Listas - Cuentas Corrientes (ABM)"
+        //   Insumos   "PAR Insumos · Compras · AutorizacionComercial.frm"
+        // Buscando sólo " - ", las de Insumos caían enteras en la sección "—" y el
+        // filtro de Sección quedaba con una sola opción vacía.
         function parseFlowName(name) {
-            const parts = name.split(' - ').map(s => s.trim());
+            const sep = name.includes(' · ') ? ' · ' : ' - ';
+            const parts = name.split(sep).map(s => s.trim());
             if (parts.length >= 3) {
-                return { module: parts[0], section: parts[1], flow: parts.slice(2).join(' - ') };
+                return { module: parts[0], section: parts[1], flow: parts.slice(2).join(sep) };
             }
             if (parts.length === 2) {
                 return { module: parts[0], section: '—', flow: parts[1] };
@@ -772,13 +777,27 @@
             groupedFlows = parents.map(p => {
                 const parsed = parseFlowName(p.name);
                 const subtasks = subs.filter(s => s.parent === p.id);
-                const counts = {
+                let counts = {
                     total: subtasks.length,
                     pass: subtasks.filter(s => s.status === 'testing pass').length,
                     fail: subtasks.filter(s => s.status === 'testing fail').length,
                     pending: subtasks.filter(s => s.status === 'pendiente').length,
                     done: subtasks.filter(s => s.status === 'done').length
                 };
+                // En Insumos los casos NO son subtareas: cada formulario es una sola
+                // tarjeta y su resultado vive en el body ("N/M en verde"). Sin esto
+                // todos los flujos mostraban "0 casos" aunque tuvieran test.
+                if (!subtasks.length) {
+                    const r = resultadoDeFormulario(p);
+                    const total = r.verdes + r.rojos;
+                    if (total) {
+                        counts = { total, pass: r.verdes, fail: r.rojos, pending: 0, done: 0 };
+                    } else if (esAutomatizado(p)) {
+                        counts = { total: 0, pass: 0, fail: 0, pending: 0, done: 0 };
+                    } else {
+                        counts = { total: 0, pass: 0, fail: 0, pending: 1, done: 0 };
+                    }
+                }
                 return { parent: p, ...parsed, subtasks, counts };
             });
 
