@@ -949,18 +949,17 @@
         // pendiente: no se migra, asi que sale del universo. Si quedara adentro,
         // el denominador pediria para siempre un test que nunca se va a escribir
         // (y contarlo como cubierto seria peor: un 100% que no es cierto).
-        const MARCA_FUERA = /Fuera de alcance/i;
 
         function esAutomatizado(t) {
             return MARCA_AUTO.test(t.description || '');
         }
 
         function estaFueraDeAlcance(t) {
-            // Dos señales, porque una sola se pierde: la nota en el cuerpo y el
-            // estado `obsoleto` de la lista de paridad. Un formulario que se
-            // elimina del web se marca con las dos.
-            return MARCA_FUERA.test(t.description || '')
-                || (t.status || '').toLowerCase() === 'obsoleto';
+            // SOLO el estado. Buscar la frase en el cuerpo parecía más seguro y era
+            // lo contrario: tres centinelas la mencionan en el texto de su propio
+            // caso —explican que vigilan algo que no se migró— y quedaban fuera del
+            // universo estando cubiertos. El estado `obsoleto` es inequívoco.
+            return (t.status || '').toLowerCase() === 'obsoleto';
         }
 
         /** {verdes, rojos} de un formulario, leídos de "N/M en verde". */
