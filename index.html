@@ -956,7 +956,11 @@
         }
 
         function estaFueraDeAlcance(t) {
-            return MARCA_FUERA.test(t.description || '');
+            // Dos señales, porque una sola se pierde: la nota en el cuerpo y el
+            // estado `obsoleto` de la lista de paridad. Un formulario que se
+            // elimina del web se marca con las dos.
+            return MARCA_FUERA.test(t.description || '')
+                || (t.status || '').toLowerCase() === 'obsoleto';
         }
 
         /** {verdes, rojos} de un formulario, leídos de "N/M en verde". */
