@@ -945,9 +945,18 @@
         // Con "Todos" se suman los dos, por eso no se puede elegir uno u otro criterio.
         const MARCA_AUTO = /Automatizado/i;
         const MARCA_RESULTADO = /(\d+)\s*\/\s*(\d+)\s+en verde/i;
+        // Un formulario que el negocio decidio ELIMINAR del web no es cobertura
+        // pendiente: no se migra, asi que sale del universo. Si quedara adentro,
+        // el denominador pediria para siempre un test que nunca se va a escribir
+        // (y contarlo como cubierto seria peor: un 100% que no es cierto).
+        const MARCA_FUERA = /Fuera de alcance/i;
 
         function esAutomatizado(t) {
             return MARCA_AUTO.test(t.description || '');
+        }
+
+        function estaFueraDeAlcance(t) {
+            return MARCA_FUERA.test(t.description || '');
         }
 
         /** {verdes, rojos} de un formulario, leídos de "N/M en verde". */
@@ -988,7 +997,8 @@
             //   Insumos  -> el formulario: cubierto si tiene la marca del test
             const listasInsumos = MODULOS.insumos.auto;
             const esDeInsumos = t => listasInsumos.includes(t.listId);
-            const univInsumos = allTasks.filter(t => !t.parent && esDeInsumos(t));
+            const univInsumos = allTasks.filter(
+                t => !t.parent && esDeInsumos(t) && !estaFueraDeAlcance(t));
             const cubInsumos = univInsumos.filter(esAutomatizado).length;
             const univContable = subs.filter(t => !esDeInsumos(t));
             const cubContable = univContable.filter(t => t.status !== 'pendiente').length;
