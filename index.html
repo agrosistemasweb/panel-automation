@@ -457,7 +457,8 @@
         <div class="stat-card"><div class="label">⏸ Pendiente</div><div class="value" style="color:#8b8fa3" id="statPending">-</div></div>
         <div class="stat-card"><div class="label">🏁 Done</div><div class="value" style="color:#12a594" id="statDone">-</div></div>
         <div class="stats-divider"></div>
-        <div class="stat-card"><div class="label">% Cobertura</div><div class="value" style="color:var(--accent)" id="statCoverage">-</div><div class="sub" id="statCoverageSub"></div></div>
+        <div class="stat-card"><div class="label">Con test (lectura)</div><div class="value" style="color:var(--accent)" id="statCoverage">-</div><div class="sub" id="statCoverageSub"></div></div>
+        <div class="stat-card"><div class="label">Prueban como usuario</div><div class="value" style="color:#f97316" id="statFlujos">-</div><div class="sub" id="statFlujosSub">eligen, tocan y graban</div></div>
         <div class="stats-divider"></div>
         <div class="stat-card"><div class="label">🐛 Bugs en Desarrollo</div><div class="value" style="color:#f97316" id="statBugsDev">-</div></div>
         <div class="stat-card"><div class="label">🧪 Bugs a Testear</div><div class="value" style="color:#ffc53d" id="statBugsQa">-</div></div>
@@ -955,6 +956,11 @@
         //    "🤖 Automatizado — … N/M en verde" con el resultado de la última corrida.
         // Con "Todos" se suman los dos, por eso no se puede elegir uno u otro criterio.
         const MARCA_AUTO = /Automatizado/i;
+        // Una prueba de USUARIO — elige, toca y GRABA— no vale lo mismo que una
+        // lectura que abre la pantalla y compara un contador. El runner declara el tipo
+        // en el cuerpo («Tipo: 3 flujo · 2 lectura»). Contarlas juntas fue el 100 % falso.
+        const MARCA_FLUJO = /Tipo:[^
+]*flujo/i;
         const MARCA_RESULTADO = /(\d+)\s*\/\s*(\d+)\s+en verde/i;
         // Un formulario que el negocio decidio ELIMINAR del web no es cobertura
         // pendiente: no se migra, asi que sale del universo. Si quedara adentro,
@@ -963,6 +969,10 @@
 
         function esAutomatizado(t) {
             return MARCA_AUTO.test(t.description || '');
+        }
+
+        function tieneFlujoDeUsuario(t) {
+            return MARCA_FLUJO.test(t.description || '');
         }
 
         function estaFueraDeAlcance(t) {
@@ -1038,6 +1048,15 @@
             document.getElementById('statFail').textContent = fail;
             document.getElementById('statPending').textContent = pending;
             document.getElementById('statDone').textContent = done;
+            // Lo que de verdad importa: cuantas unidades tienen una prueba de USUARIO.
+            // Una lectura detecta un universo mal armado, pero no reproduce ningun bug.
+            const conFlujo = [...univInsumos, ...univContable].filter(tieneFlujoDeUsuario).length;
+            const elFlujos = document.getElementById('statFlujos');
+            if (elFlujos) {
+                elFlujos.textContent = univ > 0 ? Math.round(conFlujo / univ * 100) + '%' : '-';
+                const subFl = document.getElementById('statFlujosSub');
+                if (subFl) subFl.textContent = conFlujo + '/' + univ + ' eligen, tocan y graban';
+            }
             const elCov = document.getElementById('statCoverage');
             elCov.textContent = coverage + '%';
             elCov.title = coverageDetalle;
