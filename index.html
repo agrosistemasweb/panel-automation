@@ -438,6 +438,7 @@
                 <button class="mod-btn"        data-mod="todos"    onclick="switchModulo('todos')">Todos</button>
                 <button class="mod-btn active" data-mod="insumos"  onclick="switchModulo('insumos')">Insumos</button>
                 <button class="mod-btn"        data-mod="contable" onclick="switchModulo('contable')">Contable</button>
+                <button class="mod-btn"        data-mod="fletes"   onclick="switchModulo('fletes')">Fletes</button>
             </div>
             <span class="last-updated" id="lastUpdated"></span>
             <button class="btn-refresh" onclick="window.open('https://agrosistemasweb.github.io/panel-bugs/','_blank')">Panel de Bugs</button>
@@ -548,13 +549,23 @@
                 auto: ['901327964400'],   // Insumos - Paridad por Formulario (VB6→web)
                 bugs: ['901328136962', '901327837197'],  // Sprint 2 QA + Bugs Backlog (activos)
                 qa:   ['901327837225']    // Matriz de Cobertura
+            },
+            fletes: {
+                nombre: 'Fletes',
+                // Fletes no tiene lista de paridad por formulario: sus casos reportan a los
+                // PADRES del sprint, uno por funcionalidad (Listas, Configuración,
+                // Operaciones, Facturación, Reportes). Por eso la misma lista es `auto` y
+                // `bugs`: el veredicto va al padre y el bug cuelga de ese mismo padre.
+                auto: ['901328139800'],   // QA - Modulo Fletes > Sprint 1
+                bugs: ['901328139800', '901327837197'],
+                qa:   ['901327837225']
             }
         };
         MODULOS.todos = {
             nombre: 'Todos',
-            auto: [...MODULOS.contable.auto, ...MODULOS.insumos.auto],
-            bugs: [...MODULOS.contable.bugs, ...MODULOS.insumos.bugs],
-            // la Matriz es una sola para los dos: no se duplica
+            auto: [...MODULOS.contable.auto, ...MODULOS.insumos.auto, ...MODULOS.fletes.auto],
+            bugs: [...MODULOS.contable.bugs, ...MODULOS.insumos.bugs, ...MODULOS.fletes.bugs],
+            // la Matriz es una sola para todos: no se duplica
             qa:   ['901327837225']
         };
 
@@ -998,7 +1009,9 @@
             // 131 cubiertos). La unidad es distinta en cada módulo:
             //   Contable -> la subtarea: cubierta si salió de "pendiente"
             //   Insumos  -> el formulario: cubierto si tiene la marca del test
-            const listasInsumos = MODULOS.insumos.auto;
+            // Insumos y Fletes cuentan por TAREA (formulario / padre del sprint);
+            // Contable cuenta por subtarea. Los dos primeros van juntos.
+            const listasInsumos = [...MODULOS.insumos.auto, ...MODULOS.fletes.auto];
             const esDeInsumos = t => listasInsumos.includes(t.listId);
             const univInsumos = allTasks.filter(
                 t => !t.parent && esDeInsumos(t) && !estaFueraDeAlcance(t));
