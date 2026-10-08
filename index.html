@@ -959,8 +959,7 @@
         // Una prueba de USUARIO — elige, toca y GRABA— no vale lo mismo que una
         // lectura que abre la pantalla y compara un contador. El runner declara el tipo
         // en el cuerpo («Tipo: 3 flujo · 2 lectura»). Contarlas juntas fue el 100 % falso.
-        const MARCA_FLUJO = /Tipo:[^
-]*flujo/i;
+        const MARCA_FLUJO = /Tipo:[^\n]*\bflujo\b/i;
         const MARCA_RESULTADO = /(\d+)\s*\/\s*(\d+)\s+en verde/i;
         // Un formulario que el negocio decidio ELIMINAR del web no es cobertura
         // pendiente: no se migra, asi que sale del universo. Si quedara adentro,
