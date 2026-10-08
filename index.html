@@ -439,6 +439,7 @@
                 <button class="mod-btn active" data-mod="insumos"  onclick="switchModulo('insumos')">Insumos</button>
                 <button class="mod-btn"        data-mod="contable" onclick="switchModulo('contable')">Contable</button>
                 <button class="mod-btn"        data-mod="fletes"   onclick="switchModulo('fletes')">Fletes</button>
+                <button class="mod-btn"        data-mod="sueldos"  onclick="switchModulo('sueldos')">Sueldos</button>
             </div>
             <span class="last-updated" id="lastUpdated"></span>
             <button class="btn-refresh" onclick="window.open('https://agrosistemasweb.github.io/panel-bugs/','_blank')">Panel de Bugs</button>
@@ -548,7 +549,9 @@
                 // los casos automatizados de Insumos viven en la lista de paridad por
                 // formulario; los bugs que abre el circuito, en el backlog de QA
                 auto: ['901327964400'],   // Insumos - Paridad por Formulario (VB6→web)
-                bugs: ['901328136962', '901327837197'],  // Sprint 2 QA + Bugs Backlog (activos)
+                // Las tarjetas viajan Sprint -> DEVAPP -> STAGING con cada deploy (08/10/2026):
+                // se leen las tres listas juntas para no perderlas en el pase.
+                bugs: ['901328136962', '1400450000005495', '1400450000005520', '901327837197'],  // Sprint 2 QA, DEVAPP 07/10, STAGING 08/10 + Bugs Backlog
                 qa:   ['901327837225']    // Matriz de Cobertura
             },
             fletes: {
@@ -557,15 +560,23 @@
                 // PADRES del sprint, uno por funcionalidad (Listas, Configuración,
                 // Operaciones, Facturación, Reportes). Por eso la misma lista es `auto` y
                 // `bugs`: el veredicto va al padre y el bug cuelga de ese mismo padre.
-                auto: ['901328139800'],   // QA - Modulo Fletes > Sprint 1
-                bugs: ['901328139800', '901327837197'],
+                auto: ['901328139800', '1400450000005500', '1400450000005501'],   // QA - Modulo Fletes > Sprint 1, DEVAPP 08/10, STAGING 08/10
+                bugs: ['901328139800', '1400450000005500', '1400450000005501', '901327837197'],
+                qa:   ['901327837225']
+            },
+            sueldos: {
+                nombre: 'Sueldos',
+                // Igual que Fletes: los casos reportan a las tarjetas del sprint (cada bug
+                // y su padre), y los bugs que abre el circuito cuelgan de la misma lista.
+                auto: ['901328139852', '1400450000005523', '1400450000005524'],   // QA - Modulo Sueldos > Sprint 1, DEVAPP 07/10, STAGING 08/10
+                bugs: ['901328139852', '1400450000005523', '1400450000005524', '901327837197'],
                 qa:   ['901327837225']
             }
         };
         MODULOS.todos = {
             nombre: 'Todos',
-            auto: [...MODULOS.contable.auto, ...MODULOS.insumos.auto, ...MODULOS.fletes.auto],
-            bugs: [...MODULOS.contable.bugs, ...MODULOS.insumos.bugs, ...MODULOS.fletes.bugs],
+            auto: [...MODULOS.contable.auto, ...MODULOS.insumos.auto, ...MODULOS.fletes.auto, ...MODULOS.sueldos.auto],
+            bugs: [...MODULOS.contable.bugs, ...MODULOS.insumos.bugs, ...MODULOS.fletes.bugs, ...MODULOS.sueldos.bugs],
             // la Matriz es una sola para todos: no se duplica
             qa:   ['901327837225']
         };
@@ -1020,10 +1031,16 @@
             //   Insumos  -> el formulario: cubierto si tiene la marca del test
             // Insumos y Fletes cuentan por TAREA (formulario / padre del sprint);
             // Contable cuenta por subtarea. Los dos primeros van juntos.
-            const listasInsumos = [...MODULOS.insumos.auto, ...MODULOS.fletes.auto];
+            // Fletes y Sueldos se miden por BUG: cada tarjeta del sprint (el bug o su
+            // padre) es una unidad, y esta cubierta si una prueba la reproduce. Contar
+            // solo los padres daba por probado un modulo con un test por seccion
+            // (08/10/2026: Fletes tenia 3 de 65 bugs con prueba de usuario).
+            const listasPorBug = [...MODULOS.fletes.auto, ...MODULOS.sueldos.auto];
+            const esPorBug = t => listasPorBug.includes(t.listId);
+            const listasInsumos = [...MODULOS.insumos.auto, ...listasPorBug];
             const esDeInsumos = t => listasInsumos.includes(t.listId);
             const univInsumos = allTasks.filter(
-                t => !t.parent && esDeInsumos(t) && !estaFueraDeAlcance(t));
+                t => (esPorBug(t) || !t.parent) && esDeInsumos(t) && !estaFueraDeAlcance(t));
             const cubInsumos = univInsumos.filter(esAutomatizado).length;
             const univContable = subs.filter(t => !esDeInsumos(t));
             const cubContable = univContable.filter(t => t.status !== 'pendiente').length;
